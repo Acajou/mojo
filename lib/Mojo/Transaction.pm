@@ -319,7 +319,7 @@ sub server_read {
     }
 
     # EOF
-    if ((length $chunk == 0) || $self->req->is_finished) {
+    if ((length $chunk == 0) || $self->req->is_finished) {      
         $self->state('handle_request');
     }
 
