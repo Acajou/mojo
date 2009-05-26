@@ -224,15 +224,15 @@ sub _prepare_transactions {
 
             # Read leftovers
             $p->server_read($leftovers);
-	    # Check if leftovers had a whole request in them
-	    if ($p->is_state('handle_request')) {
+            # Check if leftovers had a whole request in them
+            if ($p->is_state('handle_request')) {
 
-	      # Handler
-	      $self->handler_cb->($self, $p->server_tx);
+              # Handler
+              $self->handler_cb->($self, $p->server_tx);
 
-	      # Handled
-	      $p->server_handled;
-	    }
+              # Handled
+              $p->server_handled;
+            }
 
         }
 
