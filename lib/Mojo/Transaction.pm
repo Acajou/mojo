@@ -367,9 +367,6 @@ sub server_spin {
         }
         else {
             # Don't send body if request was HEAD
-            if ($self->res->body_length) {
-                warn("Warning: handler set body but client wanted only HEAD");
-            }
             $self->req->is_state('done_with_leftovers')
               ? $self->state('done_with_leftovers')
               : $self->state('done');
