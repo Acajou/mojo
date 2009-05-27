@@ -75,6 +75,7 @@ sub parse {
             # Done
             else {
                 $self->_remove_chunked_encoding;
+                $self->_add_content_length;
                 $self->done;
             }
             last;
@@ -118,6 +119,10 @@ sub _remove_chunked_encoding {
     $self->headers->transfer_encoding($encoding);
 }
 
+sub _add_content_length {
+    my $self     = shift;
+    $self->headers->content_length(length $self->output_buffer);
+}
 1;
 __END__
 
