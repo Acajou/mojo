@@ -75,7 +75,7 @@ sub spin {
     if (@$read) { $self->_read($read) }
 
     # Write
-    if (@$write) { $self->_write($write) }
+    elsif (@$write) { $self->_write($write) }
 
 }
 
@@ -224,14 +224,15 @@ sub _prepare_transactions {
 
             # Read leftovers
             $p->server_read($leftovers);
-            # Check if leftovers had a whole request in them
+
+            # Check if leftovers contained a whole request
             if ($p->is_state('handle_request')) {
 
-              # Handler
-              $self->handler_cb->($self, $p->server_tx);
+                # Handler
+                $self->handler_cb->($self, $p->server_tx);
 
-              # Handled
-              $p->server_handled;
+                # Handled
+                $p->server_handled;
             }
 
         }
