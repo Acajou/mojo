@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 244;
+use Test::More tests => 246;
 
 use Mojo::Filter::Chunked;
 use Mojo::Headers;
@@ -101,6 +101,7 @@ is($req->major_version,           1);
 is($req->minor_version,           1);
 is($req->url,                     '/foo/bar/baz.html?foo=13#23');
 is($req->headers->content_length, 13);
+ok(!defined $req->headers->transfer_encoding);
 is($req->headers->content_type,   'text/plain');
 is($req->content->file->length,   13);
 is($req->content->file->slurp,    'abcdabcdefghi');
@@ -170,6 +171,7 @@ is($req->major_version,                 1);
 is($req->minor_version,                 1);
 is($req->url,                           '/foo/bar/baz.html?foo=13&bar=23#23');
 is($req->query_params,                  'foo=13&bar=23');
+ok(!defined $req->headers->transfer_encoding);
 is($req->headers->content_type,         'text/plain');
 is($req->headers->header('X-Trailer1'), 'test');
 is($req->headers->header('X-Trailer2'), '123');
