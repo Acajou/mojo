@@ -67,19 +67,26 @@ sub parse {
         if ($length == 0) {
             $filter->{buffer} =~ s/^$1//;
 
-            # Cleanup
-            $filter->{buffer} =~ s/^\x0d?\x0a//;
+            $self->_remove_chunked_encoding;
 
-            # Trailing headers
-            if ($self->headers->trailer) {
-                $self->state('trailing_headers');
+            # Anything left?
+
+            # Second 0d0a signals end of chunked request
+            $filter->{buffer} =~ s/^(\x0d?\x0a)//;
+
+            # B4: "if ($self->headers->trailer) {" <- Did this ever do anything?
+            if ($1 && (length $filter->{buffer}) == 0) {
+              $self->done; #yeah!
             }
-
-            # Done
+            elsif ($1) {
+              # done with leftovers: TODO
+              die "Argh!";
+            }
             else {
-                $self->_remove_chunked_encoding;
-                $self->done;
+              $self->state('trailing_headers');
+              # Should we empty the buffer now? Dunno. Seems to work as-is.
             }
+
             last;
         }
 
@@ -107,9 +114,10 @@ sub parse {
 sub _parse_trailing_headers {
     my $self = shift;
     $self->headers->state('headers');
+    # Need to check for leftovers here or in parse?
     $self->headers->parse;
     if ($self->headers->is_done) {
-        $self->_remove_chunked_encoding;
+        # $self->_remove_chunked_encoding; already done by now
         $self->done;
     }
 }
