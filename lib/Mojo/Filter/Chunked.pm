@@ -60,6 +60,7 @@ sub parse {
 
     # Got a chunk (we ignore the chunk extension)
     my $filter = $self->input_buffer;
+
     while ($filter->{buffer} =~ /^(([\da-fA-F]+).*\x0d?\x0a)/) {
         my $length = hex($2);
 
@@ -73,18 +74,15 @@ sub parse {
 
             # Second 0d0a signals end of chunked request
             $filter->{buffer} =~ s/^(\x0d?\x0a)//;
+            my $at_end = $1;
+            my $stuff_left = length $filter->{buffer};
 
-            # B4: "if ($self->headers->trailer) {" <- Did this ever do anything?
-            if ($1 && (length $filter->{buffer}) == 0) {
+            if ($at_end && !$stuff_left) {
               $self->done; #yeah!
             }
-            elsif ($1) {
-              # done with leftovers: TODO
-              die "Argh!";
-            }
-            else {
+            elsif (!$at_end) {
               $self->state('trailing_headers');
-              # Should we empty the buffer now? Dunno. Seems to work as-is.
+              $self->_parse_trailing_headers if $stuff_left;
             }
 
             last;
@@ -107,17 +105,13 @@ sub parse {
         }
     }
 
-    # Trailing headers
-    $self->_parse_trailing_headers if $self->is_state('trailing_headers');
 }
 
 sub _parse_trailing_headers {
     my $self = shift;
     $self->headers->state('headers');
-    # Need to check for leftovers here or in parse?
     $self->headers->parse;
     if ($self->headers->is_done) {
-        # $self->_remove_chunked_encoding; already done by now
         $self->done;
     }
 }

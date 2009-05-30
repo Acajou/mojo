@@ -37,7 +37,8 @@ __PACKAGE__->attr(
     )
 );
 __PACKAGE__->attr(
-    [qw/raw_header_length relaxed/] => (chained => 1, default => 0));
+    [qw/raw_header_length relaxed content_chunked/] =>
+                  (chained => 1, default => 0));
 
 sub build_body {
     my $self = shift;
@@ -116,8 +117,11 @@ sub header_length { return length shift->build_headers }
 
 sub is_chunked {
     my $self = shift;
-    my $encoding = $self->headers->transfer_encoding || '';
-    return $encoding =~ /chunked/i ? 1 : 0;
+    unless ($self->content_chunked) {
+        my $encoding = $self->headers->transfer_encoding || '';
+        $self->content_chunked($encoding =~ /chunked/i ? 1 : 0);
+    }
+    return $self->content_chunked;
 }
 
 sub is_multipart {
@@ -173,6 +177,8 @@ sub parse {
         # Filter
         $self->filter->parse;
         $self->done if $self->filter->is_done;
+        # Return unconditionally here?
+        return $self if $self->filter->is_state('trailing_headers');
     }
 
     # Not chunked, pass through
