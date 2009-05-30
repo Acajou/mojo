@@ -68,8 +68,6 @@ sub parse {
         if ($length == 0) {
             $filter->{buffer} =~ s/^$1//;
 
-            $self->_remove_chunked_encoding;
-
             # Anything left?
 
             # Second 0d0a signals end of chunked request
@@ -112,6 +110,7 @@ sub _parse_trailing_headers {
     $self->headers->state('headers');
     $self->headers->parse;
     if ($self->headers->is_done) {
+        $self->_remove_chunked_encoding;
         $self->done;
     }
 }
