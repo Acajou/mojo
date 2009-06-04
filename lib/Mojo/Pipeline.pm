@@ -220,7 +220,10 @@ sub server_read {
     my $self = shift;
 
     # Request without a transaction
-    die "Request without a transaction!" unless ($self->_reader);
+    unless ($self->_reader) {
+      $self->error('Request without a transaction!');
+      return $self;
+    }
 
     # Normal request
     $self->_reader->server_read(@_);
