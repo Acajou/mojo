@@ -109,6 +109,14 @@ sub fix_headers {
     return $self;
 }
 
+sub is_status_class {
+    my $self = shift;
+    my $class = shift;
+
+    return 1 if ($self->code >= $class && $self->code < ($class+100));
+    return 0;
+}
+
 sub parse {
     my $self = shift;
 
@@ -267,5 +275,9 @@ implements the following new ones.
 =head2 C<parse_until_body>
 
     $res = $res->parse_until_body('HTTP/1.1 200 OK');
+
+=head2 C<is_status_class>
+
+    my $is_2xx = $res->is_status_class(200); # true for status codes 200-299
 
 =cut
