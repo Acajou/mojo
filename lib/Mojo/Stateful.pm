@@ -9,7 +9,9 @@ use base 'Mojo::Base';
 
 # Don't kid yourself, Jimmy. If a cow ever got the chance,
 # he'd eat you and everyone you care about!
-__PACKAGE__->attr('state', default => 'start');
+__PACKAGE__->attr('_state', default => 'start');
+
+use constant DEBUG => $ENV{STATE_MACHINE_DEBUG} || 0;
 
 sub done { shift->state('done') }
 
@@ -30,6 +32,13 @@ sub is_state {
     my ($self, @states) = @_;
     for my $state (@states) { return 1 if $self->state eq $state }
     return 0;
+}
+
+sub state {
+    my ($self, $value) = @_;
+    return $self->_state unless $value;
+    warn ref($self) . " : " . $self->_state . " -> $value" if DEBUG;
+    return $self->{_state} = $value;
 }
 
 1;
