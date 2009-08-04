@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 70;
+use Test::More tests => 79;
 
 # I don't want you driving around in a car you built yourself.
 # You can sit there complaining, or you can knit me some seat belts.
@@ -109,7 +109,7 @@ is("$url",
         'http://acme.s3.amazonaws.com'
       . '/mojo%2Fg%2B%2B-4%2E2_4%2E2%2E3-2ubuntu7_i386%2Edeb');
 
-# Clone (Advanced)
+# Clone (advanced)
 $url = Mojo::URL->new(
     'http://sri:foobar@kraih.com:8080/test/index.html?monkey=biz&foo=1#23');
 my $clone = $url->clone;
@@ -126,5 +126,19 @@ is($clone->fragment, '23');
 is("$clone",
     'http://sri:foobar@kraih.com:8080/test/index.html?monkey=biz&foo=1#23');
 $clone->path('/index.xml');
-is("$clone", 'http://sri:foobar@kraih.com:8080/index.xml?monkey=biz&foo=1#23');
+is("$clone",
+    'http://sri:foobar@kraih.com:8080/index.xml?monkey=biz&foo=1#23');
 
+# Clone (with base)
+$url = Mojo::URL->new('/test/index.html');
+$url->base->parse('http://127.0.0.1');
+is("$url", '/test/index.html');
+$clone = $url->clone;
+is("$url",                    '/test/index.html');
+is($clone->is_abs,            undef);
+is($clone->scheme,            undef);
+is($clone->host,              '');
+is($clone->base->scheme,      'http');
+is($clone->base->host,        '127.0.0.1');
+is($clone->path,              '/test/index.html');
+is($clone->to_abs->to_string, 'http://127.0.0.1/test/index.html');

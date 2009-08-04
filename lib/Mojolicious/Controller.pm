@@ -12,6 +12,10 @@ use base 'MojoX::Dispatcher::Routes::Controller';
 sub render {
     my $self = shift;
 
+    # Template as single argument?
+    $self->stash->{template} = shift
+      if (@_ % 2 && !ref $_[0]) || (!@_ % 2 && ref $_[1]);
+
     # Merge args with stash
     my $args = ref $_[0] ? $_[0] : {@_};
     $self->{stash} = {%{$self->stash}, %$args};
@@ -50,10 +54,15 @@ sub render {
 # Ooh, a reception table with muffins!
 sub render_inner { delete shift->stash->{inner_template} }
 
-# I'm finally richer than those snooty ATM machines.
 sub render_partial {
     my $self = shift;
     local $self->stash->{partial} = 1;
+    return $self->render(@_);
+}
+
+sub render_text {
+    my $self = shift;
+    $self->stash->{text} = shift;
     return $self->render(@_);
 }
 
@@ -108,7 +117,16 @@ ones.
 =head2 C<render>
 
     $c->render;
-    $c->render(action => 'foo');
+    $c->render(controller => 'foo', action => 'bar');
+    $c->render({controller => 'foo', action => 'bar'});
+    $c->render(text => 'Hello!');
+    $c->render(template => 'index');
+    $c->render(template => 'foo/index');
+    $c->render(template => 'index', format => 'html', handler => 'epl');
+    $c->render(handler => 'something');
+    $c->render('foo/bar');
+    $c->render('foo/bar', format => 'html');
+    $c->render('foo/bar', {format => 'html'});
 
 =head2 C<render_inner>
 
@@ -118,6 +136,11 @@ ones.
 
     my $output = $c->render_partial;
     my $output = $c->render_partial(action => 'foo');
+
+=head2 C<render_text>
+
+    $c->render_text('Hello World!');
+    $c->render_text('Hello World', layout => 'green');
 
 =head2 C<url_for>
 

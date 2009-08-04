@@ -65,12 +65,13 @@ WriteMakefile(
         'MIME::Base64'          => 0,
         'MIME::QuotedPrint'     => 0,
         'POSIX'                 => 0,
+        'Scalar::Util'          => 0,
         'Test::Builder'         => 0,
         'Test::Harness'         => 0,
         'Test::More'            => 0,
         'Time::HiRes'           => 0
     },
-    test => {TESTS => 't/*.t t/*/*.t t/*/*/*.t'}
+    test => {TESTS => 't/*.t t/*/*.t t/*/*/*.t t/*/*/*/*.t'}
 );
 
 # Devel::Cover support

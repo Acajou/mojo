@@ -7,7 +7,6 @@ use warnings;
 
 use base 'Mojo';
 
-use Mojolicious::Controller;
 use Mojolicious::Renderer;
 use Mojolicious::Scripts;
 use MojoX::Dispatcher::Routes;
@@ -15,6 +14,7 @@ use MojoX::Dispatcher::Static;
 use MojoX::Types;
 use Time::HiRes ();
 
+__PACKAGE__->attr('controller_class', default => 'Mojolicious::Controller');
 __PACKAGE__->attr('mode',
     default => sub { ($ENV{MOJO_MODE} || 'development') });
 __PACKAGE__->attr('renderer', default => sub { Mojolicious::Renderer->new });
@@ -44,6 +44,9 @@ sub new {
     $self->renderer->root($self->home->rel_dir('templates'));
     $self->static->root($self->home->rel_dir('public'));
 
+    # Hide our methods
+    $self->routes->hide(qw/render_inner render_partial render_text url_for/);
+
     # Mode
     my $mode = $self->mode;
 
@@ -59,6 +62,16 @@ sub new {
     # Startup
     eval { $self->startup(@_) };
     $self->log->error("Startup failed: $@") if $@;
+
+    # Load controller class
+    my $class = $self->controller_class;
+    if (my $e = Mojo::Loader->load($class)) {
+        $self->log->error(
+            ref $e
+            ? qq/Can't load controller class "$class": $e/
+            : qq/Controller class "$class" doesn't exist./
+        );
+    }
 
     return $self;
 }
@@ -84,7 +97,7 @@ sub dispatch {
         if ($self->mode eq 'development') {
             $c->stash(exception => $e);
             $c->res->code(500);
-            $c->render(template => 'exception.html');
+            $c->render(template => 'exception', format => 'html');
         }
 
         # Production mode
@@ -104,7 +117,7 @@ sub handler {
 
     # Build default controller and process
     eval {
-        $self->process(Mojolicious::Controller->new(app => $self, tx => $tx));
+        $self->process($self->controller_class->new(app => $self, tx => $tx));
     };
     $self->log->error("Processing request failed: $@") if $@;
 

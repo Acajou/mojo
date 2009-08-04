@@ -19,22 +19,20 @@ sub new {
     # Epl
     $self->add_handler(
         epl => sub {
-            my ($r, $c, $output) = @_;
+            my ($r, $c, $output, $options) = @_;
 
             # Template
-            my $template = $c->stash->{template};
-            my $path =
-              File::Spec->catfile($c->app->renderer->root, $template);
+            my $template = $r->template_name($options);
+            my $path     = $r->template_path($options);
 
             # Initialize cache
             $r->{_mt_cache} ||= {};
 
             # Shortcut
-            unless (-r $path || $r->{_mt_cache}->{$path}) {
-                $c->app->log->error(
-                    qq/Template "$template" missing or not readable./);
-                return;
-            }
+            $c->app->log->error(
+                qq/Template "$template" missing or not readable./)
+              and return
+              unless -r $path || $r->{_mt_cache}->{$path};
 
             # Check cache
             my $mt = $r->{_mt_cache}->{$path};
@@ -70,7 +68,8 @@ sub new {
                     $c->res->body(
                         $c->render(
                             partial  => 1,
-                            template => 'exception.html'
+                            template => 'exception',
+                            format   => 'html'
                         )
                     );
 
@@ -86,10 +85,11 @@ sub new {
     # Eplite
     $self->add_handler(
         eplite => sub {
-            my ($r, $c, $output) = @_;
+            my ($r, $c, $output, $options) = @_;
 
             # Template
-            my $template = $c->stash->{template};
+            my $template = $r->template_name($options);
+            my $path     = $r->template_path($options);
 
             # Class
             my $class =
@@ -97,26 +97,17 @@ sub new {
               || $ENV{MOJO_EPLITE_CLASS}
               || 'main';
 
-            # Path
-            my $path =
-              File::Spec->catfile($c->app->renderer->root, $template);
-
             # Prepare
             unless ($r->{_mt_cache}->{$path}) {
 
-                # Portable templates
-                $template = join '/', File::Spec->splitdir($template);
-
                 # Data
                 my $d = Mojo::Script->new->get_data($template, $class);
-                unless ($d) {
 
-                    # Nothing found
-                    $c->app->log->debug(
-                        qq/Template "$template" not found in class "$class"./
-                    );
-                    return;
-                }
+                # Nothing found
+                $c->app->log->debug(
+                    qq/Template "$template" not found in class "$class"./)
+                  and return
+                  unless $d;
 
                 # Template
                 my $t = Mojo::Template->new;
@@ -127,7 +118,7 @@ sub new {
             }
 
             # Render
-            return $r->handler->{epl}->($r, $c, $output);
+            return $r->handler->{epl}->($r, $c, $output, $options);
         }
     );
 

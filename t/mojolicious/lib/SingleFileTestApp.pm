@@ -29,19 +29,21 @@ use base 'Mojolicious::Controller';
 sub bar {
     my $self = shift;
     $self->res->headers->header('X-Bender', 'Kiss my shiny metal ass!');
-    $self->render(text => $self->url_for);
+    $self->render_text($self->url_for);
 }
 
 sub eplite_template {
     shift->render(
-        template     => 'index.html.eplite',
+        'index',
+        handler      => 'eplite',
         eplite_class => 'SingleFileTestApp::Foo'
     );
 }
 
 sub eplite_template2 {
     shift->stash(
-        template     => 'too.html.eplite',
+        template     => 'too',
+        handler      => 'eplite',
         eplite_class => 'SingleFileTestApp::Foo'
     );
 }
