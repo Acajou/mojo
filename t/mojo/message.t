@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 312;
+use Test::More tests => 322;
 
 use Mojo::Filter::Chunked;
 use Mojo::Headers;
@@ -773,6 +773,21 @@ is(defined $res->cookie('bar'), 1);
 # is($res->cookie('bar')->value, 'baz');
 # is($res->cookie('bar')->path,  '/test/23');
 
+# Parse HTTP 1.1 response with Set-Cookie and Set-Cookie2
+$res_string =~ s/Set-Cookie/Set-Cookie2/;
+$res = Mojo::Message::Response->new;
+$res->parse($res_string);
+
+is($res->state,                   'done');
+is($res->code,                    404);
+is($res->major_version,           1);
+is($res->minor_version,           1);
+is($res->headers->content_length, 0);
+$cookies = $res->cookies;
+is($res->cookie('foo')->value, 'bar');
+is($res->cookie('foo')->path,  '/foobar');
+is($res->cookie('bar')->value, 'baz');
+is($res->cookie('bar')->path,  '/test/23');
 
 # Build full HTTP 1.1 request with cookies
 $req = Mojo::Message::Request->new;
