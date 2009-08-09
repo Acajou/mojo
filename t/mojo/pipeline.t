@@ -9,7 +9,7 @@ use Test::More;
 
 plan skip_all => 'set TEST_PIPELINE to enable this test'
   unless $ENV{TEST_PIPELINE};
-plan tests => 34;
+plan tests => 38;
 
 # Are we there yet?
 # No
@@ -226,3 +226,38 @@ $pipe->safe_post(1);
 ok(!$pipe->is_writing);
 $pipe->safe_post(0);
 ok($pipe->is_writing);
+
+# add() and size()
+$tx1 = Mojo::Transaction->new_get("http://127.0.0.1:3000/18/");
+$tx2 = Mojo::Transaction->new_get("http://127.0.0.1:3000/19/");
+$tx3 = Mojo::Transaction->new_post('http://127.0.0.1:3000/20/');
+$tx3->req->body('foo bar baz' x 10);
+$pipe = Mojo::Pipeline->new($tx1, $tx2);
+
+is($pipe->size, 2);
+
+$pipe->add($tx3);
+
+is($pipe->size, 3);
+
+$pipe->{_txs}->[$_]->state('read_response') for 0 .. $#{$pipe->{_txs}} - 1;
+$pipe->{_txs}->[2]->state('write_start_line');
+$pipe->{_reader} = 0;
+$pipe->{_writer} = 2;
+$responses       = <<EOF;
+HTTP/1.1 200 OK
+Connection: Keep-Alive
+Date: Tue, 09 Jun 2009 18:24:14 GMT
+Content-Type: text/plain
+Content-length: 5
+
+1
+EOF
+$pipe->client_read($responses);
+
+my $tx4 = Mojo::Transaction->new_get("http://127.0.0.1:3000/21/");
+
+$pipe->add($tx4);
+
+is($pipe->state, 'error');
+is($pipe->error, 'Can\'t add transactions to a pipeline on the go.');

@@ -20,6 +20,19 @@ sub new {
     return $self;
 }
 
+sub add {
+    my $self = shift;
+
+    unless ($self->is_state('start')) {
+        $self->error('Can\'t add transactions to a pipeline on the go.');
+        return $self;
+    }
+
+    push @{$self->{_txs}}, @_;
+
+    return $self;
+}
+
 sub client_info {
     my $self = shift;
     return $self->{_txs}->[0] ? $self->{_txs}->[0]->client_info(@_) : undef;
@@ -294,6 +307,11 @@ sub server_written {
     return $self;
 }
 
+sub size {
+    my $self = shift;
+    return scalar @{$self->{_txs}};
+}
+
 # We are always in reading mode according to RFC, so writing has priority
 sub _client_inherit_state {
     my $self = shift;
@@ -429,6 +447,10 @@ implements the following new ones.
     my $p = Mojo::Pipeline->new($tx1);
     my $p = Mojo::Pipeline->new($tx1, $tx2, $tx3);
 
+=head2 C<add>
+
+    $p = $p->add($tx1, $tx2, $tx3);
+
 =head2 C<client_connect>
 
     $p = $p->client_connect;
@@ -496,5 +518,9 @@ implements the following new ones.
 =head2 C<server_written>
 
     $p = $p->server_written($bytes);
+
+=head2 C<size>
+
+    my $size = $p->size;
 
 =cut
