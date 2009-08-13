@@ -135,6 +135,20 @@ sub client_spin {
     return $self;
 }
 
+sub client_shift_tx {
+    my $self = shift;
+
+    return undef
+      unless $self->transactions->[0]->is_finished
+          && !$self->is_finished;
+
+    my $tx = shift @{$self->transactions};
+    $self->_reader($self->_reader - 1);
+    $self->_writer($self->_reader - 1);
+
+    return $tx;
+}
+
 sub client_written {
     my ($self, $length) = @_;
 
