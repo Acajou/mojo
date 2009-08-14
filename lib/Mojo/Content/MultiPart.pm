@@ -9,7 +9,6 @@ use base 'Mojo::Content';
 use bytes;
 
 use Mojo::ByteStream 'b';
-use Mojo::File;
 
 __PACKAGE__->attr(parts => sub { [] });
 
@@ -26,7 +25,7 @@ sub body_contains {
     return $found ? 1 : 0;
 }
 
-sub body_length {
+sub body_size {
     my $self = shift;
 
     my $length = 0;
@@ -42,8 +41,8 @@ sub body_length {
     my $boundary_length = length($boundary) + 6;
     $length += $boundary_length;
     for my $part (@{$self->parts}) {
-        $length += $part->header_length;
-        $length += $part->body_length;
+        $length += $part->header_size;
+        $length += $part->body_size;
         $length += $boundary_length;
     }
 
@@ -101,13 +100,13 @@ sub get_body_chunk {
         my $part = $self->parts->[$i];
 
         # Headers
-        my $header_length = $part->header_length;
+        my $header_length = $part->header_size;
         return $part->get_header_chunk($offset - $length)
           if ($length + $header_length) > $offset;
         $length += $header_length;
 
         # Content
-        my $content_length = $part->body_length;
+        my $content_length = $part->body_size;
         return $part->get_body_chunk($offset - $length)
           if ($length + $content_length) > $offset;
         $length += $content_length;
@@ -182,7 +181,7 @@ sub _parse_multipart_body {
 
     # Make sure we have enough buffer to detect end boundary
     if ($pos < 0) {
-        my $length = $self->buffer->length - (length($boundary) + 8);
+        my $length = $self->buffer->size - (length($boundary) + 8);
         return unless $length > 0;
 
         # Store chunk
@@ -204,7 +203,7 @@ sub _parse_multipart_boundary {
     # Begin
     if ($self->buffer->contains("\x0d\x0a--$boundary\x0d\x0a") == 0) {
         $self->buffer->remove(length($boundary) + 6);
-        push @{$self->parts}, Mojo::Content->new(relaxed => 1);
+        push @{$self->parts}, Mojo::Content::Single->new(relaxed => 1);
         $self->state('multipart_body');
         return 1;
     }
@@ -260,10 +259,6 @@ and implements the following new ones.
 
     my $parts = $content->parts;
 
-=head2 C<body_length>
-
-    my $body_length = $content->body_length;
-
 =head1 METHODS
 
 L<Mojo::Content::MultiPart> inherits all methods from L<Mojo::Content> and
@@ -272,6 +267,10 @@ implements the following new ones.
 =head2 C<body_contains>
 
     my $found = $content->body_contains('foobarbaz');
+
+=head2 C<body_size>
+
+    my $size = $content->body_size;
 
 =head2 C<build_boundary>
 

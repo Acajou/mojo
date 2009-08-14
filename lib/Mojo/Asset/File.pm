@@ -1,6 +1,6 @@
 # Copyright (C) 2008-2009, Sebastian Riedel.
 
-package Mojo::File;
+package Mojo::Asset::File;
 
 use strict;
 use warnings;
@@ -70,13 +70,11 @@ sub DESTROY {
 sub add_chunk {
     my ($self, $chunk) = @_;
 
-    # Shortcut
-    return unless $chunk;
-
     # Seek to end
     $self->handle->seek(0, SEEK_END);
 
     # Store
+    $chunk ||= '';
     $self->handle->syswrite($chunk, length $chunk);
 
     return $self;
@@ -94,7 +92,7 @@ sub contains {
     my $offset = $read;
 
     # Moving window search
-    while ($offset < $self->length) {
+    while ($offset < $self->size) {
         $read = $self->handle->sysread($buffer, length($bytestream));
         $offset += $read;
         $window .= $buffer;
@@ -104,17 +102,6 @@ sub contains {
     }
 
     return;
-}
-
-sub copy_to {
-    my ($self, $path) = @_;
-    my $src = $self->path;
-
-    # Copy
-    File::Copy::copy($src, $path)
-      or croak qq/Can't copy file "$src" to "$path": $!/;
-
-    return $self;
 }
 
 sub get_chunk {
@@ -128,16 +115,6 @@ sub get_chunk {
     return $buffer;
 }
 
-sub length {
-    my $self = shift;
-
-    # File size
-    my $file = $self->path;
-    return -s $file if $file;
-
-    return 0;
-}
-
 sub move_to {
     my ($self, $path) = @_;
     my $src = $self->path;
@@ -147,6 +124,16 @@ sub move_to {
       or croak qq/Can't move file "$src" to "$path": $!/;
 
     return $self;
+}
+
+sub size {
+    my $self = shift;
+
+    # File size
+    my $file = $self->path;
+    return -s $file if $file;
+
+    return 0;
 }
 
 sub slurp {
@@ -169,70 +156,66 @@ __END__
 
 =head1 NAME
 
-Mojo::File - File
+Mojo::Asset::File - File Asset
 
 =head1 SYNOPSIS
 
-    use Mojo::File;
+    use Mojo::Asset::File;
 
-    my $file = Mojo::File->new;
-    $file->add_chunk('World!');
-    print $file->slurp;
+    my $asset = Mojo::Asset::File->new;
+    $asset->add_chunk('foo bar baz');
+    print $asset->slurp;
 
-    my $file = Mojo::File->new(path => '/foo/bar.txt');
-    print $file->slurp;
+    my $asset = Mojo::Asset::File->new(path => '/foo/bar/baz.txt');
+    print $asset->slurp;
 
 =head1 DESCRIPTION
 
-L<Mojo::File> is a container for files.
+L<Mojo::Asset::File> is a container for file assets.
 
 =head1 ATTRIBUTES
 
-L<Mojo::File> implements the following attributes.
+L<Mojo::Asset::File> implements the following attributes.
 
 =head2 C<cleanup>
 
-    my $cleanup = $file->cleanup;
-    $file       = $file->cleanup(1);
+    my $cleanup = $asset->cleanup;
+    $asset      = $asset->cleanup(1);
 
 =head2 C<handle>
 
-    my $handle = $file->handle;
-    $file      = $file->handle(IO::File->new);
+    my $handle = $asset->handle;
+    $asset     = $asset->handle(IO::File->new);
 
 =head2 C<path>
 
-    my $path = $file->path;
-    $file    = $file->path('/foo/bar.txt');
+    my $path = $asset->path;
+    $asset   = $asset->path('/foo/bar/baz.txt');
 
 =head1 METHODS
 
-L<Mojo::File> inherits all methods from L<Mojo::Base> and implements the
-following new ones.
+L<Mojo::Asset::File> inherits all methods from L<Mojo::Asset> and implements
+the following new ones.
 
 =head2 C<add_chunk>
 
-    $file = $file->add_chunk('test 123');
+    $asset = $asset->add_chunk('foo bar baz');
 
 =head2 C<contains>
 
-    my $position = $file->contains('random string');
-
-=head2 C<copy_to>
-
-    $file = $file->copy_to('/foo/bar/baz.txt');
+    my $position = $asset->contains('bar');
 
 =head2 C<get_chunk>
 
-    my $chunk = $file->get_chunk($offset);
-
-=head2 C<length>
-
-    my $length = $file->length;
+    my $chunk = $asset->get_chunk($offset);
 
 =head2 C<move_to>
 
-    $file = $file->move_to('/foo/bar/baz.txt');
+    $asset = $asset->move_to('/foo/bar/baz.txt');
+
+=head2 C<size>
+
+    my $size = $asset->size;
 
 =head2 C<slurp>
 

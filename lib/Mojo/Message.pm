@@ -10,16 +10,16 @@ use overload '""' => sub { shift->to_string }, fallback => 1;
 use bytes;
 
 use Carp 'croak';
+use Mojo::Asset::Memory;
 use Mojo::Buffer;
-use Mojo::Content;
-use Mojo::File::Memory;
+use Mojo::Content::Single;
 use Mojo::Parameters;
 use Mojo::Upload;
 
 use constant CHUNK_SIZE => $ENV{MOJO_CHUNK_SIZE} || 4096;
 
 __PACKAGE__->attr(buffer  => sub { Mojo::Buffer->new });
-__PACKAGE__->attr(content => sub { Mojo::Content->new });
+__PACKAGE__->attr(content => sub { Mojo::Content::Single->new });
 __PACKAGE__->attr([qw/major_version minor_version/] => 1);
 
 __PACKAGE__->attr([qw/_body_params _cookies _uploads/]);
@@ -55,10 +55,10 @@ sub body {
 
         # Get/Set content
         elsif ($content) {
-            $self->content->file(Mojo::File::Memory->new);
-            $self->content->file->add_chunk($content);
+            $self->content->asset(Mojo::Asset::Memory->new);
+            $self->content->asset->add_chunk($content);
         }
-        return $self->content->file->slurp;
+        return $self->content->asset->slurp;
     }
 
     $self->content($content);
@@ -66,8 +66,6 @@ sub body {
 }
 
 sub body_cb { shift->content->body_cb(@_) }
-
-sub body_length { shift->content->body_length }
 
 sub body_params {
     my $self = shift;
@@ -84,7 +82,7 @@ sub body_params {
     {
 
         # Parse
-        my $raw = $self->content->file->slurp;
+        my $raw = $self->content->asset->slurp;
         $params->parse($raw);
     }
 
@@ -98,13 +96,15 @@ sub body_params {
             my $filename = $data->[1];
             my $part     = $data->[2];
 
-            $params->append($name, $part->file->slurp) unless $filename;
+            $params->append($name, $part->asset->slurp) unless $filename;
         }
     }
 
     # Cache
     return $self->_body_params($params)->_body_params;
 }
+
+sub body_size { shift->content->body_size }
 
 sub build {
     my $self    = shift;
@@ -204,7 +204,7 @@ sub fix_headers {
 
     # Content-Length header is required in HTTP 1.0 messages
     if ($self->at_least_version('1.0') && !$self->is_chunked) {
-        $self->headers->content_length($self->body_length)
+        $self->headers->content_length($self->body_size)
           unless $self->headers->content_length;
     }
 
@@ -240,13 +240,13 @@ sub get_start_line_chunk {
 
 sub has_leftovers { shift->content->has_leftovers }
 
-sub header_length {
+sub header_size {
     my $self = shift;
 
     # Fix headers
     $self->fix_headers;
 
-    return $self->content->header_length;
+    return $self->content->header_size;
 }
 
 sub headers { shift->content->headers(@_) }
@@ -263,7 +263,6 @@ sub param {
     return $self->{body_params}->param(@_);
 }
 
-# Please don't eat me! I have a wife and kids. Eat them!
 sub parse {
     my ($self, $chunk) = @_;
 
@@ -321,7 +320,7 @@ sub _parse {
     return $self;
 }
 
-sub start_line_length { length shift->build_start_line }
+sub start_line_size { length shift->build_start_line }
 
 sub to_string { shift->build(@_) }
 
@@ -377,7 +376,7 @@ sub uploads {
 
         my $upload = Mojo::Upload->new;
         $upload->name($name);
-        $upload->file($part->file);
+        $upload->asset($part->asset);
         $upload->filename($filename);
         $upload->headers($part->headers);
 
@@ -477,10 +476,6 @@ implements the following new ones.
         return $chunk;
     });
 
-=head2 C<body_length>
-
-    my $body_length = $message->body_length;
-
 =head2 C<buffer>
 
     my $buffer = $message->buffer;
@@ -489,11 +484,7 @@ implements the following new ones.
 =head2 C<content>
 
     my $content = $message->content;
-    $message    = $message->content(Mojo::Content->new);
-
-=head2 C<header_length>
-
-    my $header_length = $message->header_length;
+    $message    = $message->content(Mojo::Content::Single->new);
 
 =head2 C<headers>
 
@@ -517,19 +508,6 @@ implements the following new ones.
         my $self = shift;
         print '+';
     });
-
-=head2 C<raw_body_length>
-
-    my $raw_body_length = $message->raw_body_length;
-
-=head2 C<start_line_length>
-
-    my $start_line_length = $message->start_line_length;
-
-=head2 C<version>
-
-    my $version = $message->version;
-    $message    = $message->version('1.1');
 
 =head1 METHODS
 
@@ -558,6 +536,10 @@ the following new ones.
 =head2 C<body_params>
 
     my $params = $message->body_params;
+
+=head2 C<body_size>
+
+    my $size = $message->body_size;
 
 =head2 C<to_string>
 
@@ -602,6 +584,10 @@ the following new ones.
 
     my $leftovers = $message->has_leftovers;
 
+=head2 C<header_size>
+
+    my $size = $message->header_size;
+
 =head2 C<is_chunked>
 
     my $chunked = $message->is_chunked;
@@ -627,6 +613,10 @@ the following new ones.
 
     $message = $message->parse_until_body('HTTP/1.1 200 OK...');
 
+=head2 C<start_line_size>
+
+    my $size = $message->start_line_size;
+
 =head2 C<upload>
 
     my $upload  = $message->upload('foo');
@@ -635,5 +625,10 @@ the following new ones.
 =head2 C<uploads>
 
     my $uploads = $message->uploads;
+
+=head2 C<version>
+
+    my $version = $message->version;
+    $message    = $message->version('1.1');
 
 =cut

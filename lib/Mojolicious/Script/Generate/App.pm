@@ -157,14 +157,14 @@ use strict;
 use warnings;
 
 use Mojo::Client;
-use Mojo::Transaction;
+use Mojo::Transaction::Single;
 use Test::More tests => 4;
 
 use_ok('<%= $class %>');
 
 # Prepare client and transaction
 my $client = Mojo::Client->new;
-my $tx     = Mojo::Transaction->new_get('/');
+my $tx     = Mojo::Transaction::Single->new_get('/');
 
 # Process request
 $client->process_app('<%= $class %>', $tx);
@@ -172,7 +172,7 @@ $client->process_app('<%= $class %>', $tx);
 # Test response
 is($tx->res->code, 200);
 is($tx->res->headers->content_type, 'text/html');
-like($tx->res->content->file->slurp, qr/Mojolicious Web Framework/i);
+like($tx->res->content->asset->slurp, qr/Mojolicious Web Framework/i);
 @@ exception
 % use Data::Dumper ();
 % my $self = shift;

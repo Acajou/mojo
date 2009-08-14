@@ -11,12 +11,12 @@ use Carp 'croak';
 use Mojo::Home;
 use Mojo::Log;
 use Mojo::Scripts;
-use Mojo::Transaction;
+use Mojo::Transaction::Single;
 
 __PACKAGE__->attr(
     build_tx_cb => sub {
         sub {
-            my $tx = Mojo::Transaction->new;
+            my $tx = Mojo::Transaction::Single->new;
             $tx->res->headers->header('X-Powered-By' => 'Mojo (Perl)');
             return $tx;
           }
@@ -41,6 +41,7 @@ sub new {
     return $self;
 }
 
+# Bart, stop pestering Satan!
 sub handler { croak 'Method "handler" not implemented in subclass' }
 
 # Start script system
